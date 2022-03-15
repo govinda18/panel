@@ -179,7 +179,7 @@ class BaseTable(ReactiveData, Widget):
 
             if isinstance(self.widths, int):
                 col_kwargs['width'] = self.widths
-            elif str(col) in self.widths:
+            elif str(col) in self.widths and isinstance(self.widths.get(str(col)), int):
                 col_kwargs['width'] = self.widths.get(str(col))
             else:
                 col_kwargs['width'] = 0
@@ -1131,11 +1131,12 @@ class Tabulator(BaseTable):
 
     def _update_children(self, *events):
         cleanup, reuse = set(), set()
+        page_events = ('page', 'page_size', 'value', 'pagination')
         for event in events:
             if event.name == 'expanded' and len(events) == 1:
                 cleanup = set(event.old) - set(event.new)
                 reuse = set(event.old) & set(event.new)
-            elif (event.name in ('page', 'page_size', 'value', 'pagination') or
+            elif ((event.name in page_events and not self._updating) or
                   (self.pagination == 'remote' and event.name == 'sorters')):
                 self.expanded = []
                 return
@@ -1443,6 +1444,8 @@ class Tabulator(BaseTable):
                 col_dict['editorParams'] = editor
             if column.field in self.frozen_columns or i in self.frozen_columns:
                 col_dict['frozen'] = True
+            if isinstance(self.widths, dict) and isinstance(self.widths.get(column.field), str):
+                col_dict['width'] = self.widths[column.field]
             col_dict.update(self._get_filter_spec(column))
             if matching_groups:
                 group = matching_groups[0]
